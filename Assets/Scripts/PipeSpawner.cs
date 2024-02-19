@@ -3,7 +3,8 @@ using UnityEngine;
 
 public class PipeSpawner : MonoBehaviour
 {
-    [SerializeField] private GameObject pipe;
+    [SerializeField] private GameObject dayPipe;
+    [SerializeField] private GameObject nightPipe;
 
     [Space, SerializeField] private float timeToSpawnFirstPipe;
     [SerializeField] private float timeToSpawnPipe;
@@ -18,11 +19,12 @@ public class PipeSpawner : MonoBehaviour
         StartCoroutine(SpawnPipes());
     }
 
-    private void SpawnPipe()
+    private GameObject SpawnPipe()
     {
         Debug.Log("PipeSpawner :: SpawnPipe()");
 
-        Instantiate(pipe, GetPipePosition(), Quaternion.identity);
+        if (ThemePicker.isNight) return Instantiate(nightPipe, GetPipePosition(), Quaternion.identity);
+        else return Instantiate(dayPipe, GetPipePosition(), Quaternion.identity);
     }
 
     private Vector3 GetPipePosition()
@@ -37,9 +39,11 @@ public class PipeSpawner : MonoBehaviour
 
     private IEnumerator SpawnPipes()
     {
+        InitializePipePool();
+
         yield return new WaitForSeconds(timeToSpawnFirstPipe);
 
-        SpawnPipe();
+        GetPipe();
 
         WaitForSeconds timToSpawnPipeWaitForSeconds = new WaitForSeconds(timeToSpawnPipe);
 
@@ -47,7 +51,35 @@ public class PipeSpawner : MonoBehaviour
         {
             yield return timToSpawnPipeWaitForSeconds;
 
-            SpawnPipe();
+            GetPipe();
         } while (!GameManager.Instance.isGameOver);
     }
+
+
+    #region"Pipe pooling system"
+    [Space, SerializeField] int pipeAmount = 3;
+
+    GameObject[] pipePool;
+    int currentPoolIndex;
+    int maxPoolIndex;
+
+    void InitializePipePool()
+    {
+        pipePool = new GameObject[pipeAmount];
+        maxPoolIndex = pipePool.Length - 1;
+
+        for (int i = 0; i < pipePool.Length; i++)
+        {
+            pipePool[i] = SpawnPipe();
+            pipePool[i].transform.position = new Vector3(-99, -99, 0);
+        }
+    }
+
+    void GetPipe()
+    {
+        pipePool[currentPoolIndex].transform.position = GetPipePosition();
+
+        currentPoolIndex = currentPoolIndex == maxPoolIndex ? 0 : ++currentPoolIndex;
+    }
+    #endregion
 }
